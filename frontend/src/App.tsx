@@ -1,10 +1,12 @@
-import HomePage from './HomePage'
+import { AppShell } from '@astryxdesign/core';
+import { HomePage } from './HomePage';
 
 function App() {
   return (
-    <HomePage />
-  )
+    <AppShell contentPadding={6} height="fill">
+      <HomePage />
+    </AppShell>
+  );
 }
 
-export default App
-
+export default App;

@@ -65,9 +65,30 @@ SEARCH_MAX_SNIPPET_CHARS = 300
 # Number of Serper requests allowed to be in-flight at once.
 # Start with 3; lower to 2 if Serper rate-limits your account.
 SEARCH_CONCURRENCY = 3
-search_semaphore = asyncio.Semaphore(SEARCH_CONCURRENCY)
+_semaphores: dict = {}
+_locks: dict = {}
 
-request_lock = asyncio.Lock()
+
+def get_search_semaphore() -> asyncio.Semaphore:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop not in _semaphores:
+        _semaphores[loop] = asyncio.Semaphore(SEARCH_CONCURRENCY)
+    return _semaphores[loop]
+
+
+def get_request_lock() -> asyncio.Lock:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop not in _locks:
+        _locks[loop] = asyncio.Lock()
+    return _locks[loop]
+
+
 last_request_time = 0.0
 
 
@@ -91,7 +112,7 @@ def make_llm() -> ChatMistralAI:
 async def call_llm(name: str, chain, prompt):
     global last_request_time
     start = perf_counter()
-    async with request_lock:
+    async with get_request_lock():
         now = perf_counter()
         wait = REQUEST_DELAY - (now - last_request_time)
         if wait > 0:
@@ -250,7 +271,7 @@ async def _throttled_search(query: str) -> list[dict]:
 
     # This limits the number of simultaneous Serper requests.
     # Unlike the old search_lock, it does NOT serialize all requests.
-    async with search_semaphore:
+    async with get_search_semaphore():
         start = perf_counter()
 
         try:

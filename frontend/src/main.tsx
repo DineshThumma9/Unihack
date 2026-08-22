@@ -1,12 +1,10 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { Theme } from '@astryxdesign/core/theme';
 import { neutralTheme } from '@astryxdesign/theme-neutral';
 import '@astryxdesign/core/reset.css';
 import '@astryxdesign/theme-neutral/theme.css';
-import './index.css';
-import App from './App.tsx'
-
+import App from './App.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -14,5 +12,4 @@ createRoot(document.getElementById('root')!).render(
       <App />
     </Theme>
   </StrictMode>,
-)
-
+);

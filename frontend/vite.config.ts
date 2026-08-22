@@ -2,6 +2,7 @@ import path from 'path';
 import {fileURLToPath} from 'url';
 import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import stylex from '@stylexjs/unplugin/vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +18,7 @@ const lightningcssTargets = {
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     // Declare CSS layer order so theme overrides beat component base styles.
     {
       name: 'astryx-css-layer-order',

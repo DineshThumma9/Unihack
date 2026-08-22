@@ -3,8 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-    "browserslist": ["last 1 Chrome version"],
-
+  "browserslist": [
+    "last 1 Chrome version"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -16,16 +17,21 @@
     "@astryxdesign/core": "^0.4.5",
     "@astryxdesign/theme-neutral": "^0.4.5",
     "@stylexjs/stylex": "^0.19.0",
+    "axios": "^1.19.0",
+    "lucide-react": "^1.33.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@stylexjs/unplugin": "^0.19.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.75.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
   }

@@ -37,7 +37,7 @@ def _is_missing(value) -> bool:
         return not value.strip()
     try:
         return bool(pd.isna(value))
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return False
 
 
@@ -196,7 +196,7 @@ def validate_preprocessed_dataframe(df: pd.DataFrame) -> None:
                     raise ValueError(
                         f"Unsafe missing value in {column}[{index}]: {value!r}"
                     )
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 pass
 
     required = {
