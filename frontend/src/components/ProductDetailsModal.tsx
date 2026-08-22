@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import {
   Dialog,
+  DialogHeader,
+  Layout,
+  LayoutContent,
   Card,
   VStack,
   HStack,
-  Heading,
   Text,
-  Button,
   Badge,
   Skeleton,
 } from "@astryxdesign/core";
@@ -49,21 +50,23 @@ export function ProductDetailsModal() {
       }}
       width={680}
     >
-      <VStack gap={4} width="100%">
-        <HStack justify="between" align="center" width="100%">
-          <HStack gap={3} align="center">
-            <Heading level={2}>Product #{selectedProductIndex + 1}</Heading>
-            {productData && (
-              <Badge variant={statusVariant} label={productData.status.toUpperCase()} />
-            )}
-          </HStack>
-          <Button
-            label="Close"
-            variant="secondary"
-            size="sm"
-            onClick={() => selectProduct(null)}
+      <Layout
+        header={
+          <DialogHeader
+            title={`Product #${selectedProductIndex + 1}`}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) selectProduct(null);
+            }}
           />
-        </HStack>
+        }
+        content={
+          <LayoutContent>
+            <VStack gap={4} width="100%" padding={4}>
+              {productData && (
+                <HStack align="center" justify="start">
+                  <Badge variant={statusVariant} label={productData.status.toUpperCase()} />
+                </HStack>
+              )}
 
         {loading ? (
           <VStack gap={2} width="100%">
@@ -115,10 +118,12 @@ export function ProductDetailsModal() {
                   {Object.entries(productData.delivery_row)
                     .filter(([, value]) => value !== null && value !== "" && value !== undefined)
                     .map(([key, value]) => (
-                      <HStack key={key} justify="between" align="start">
+                      <VStack key={key} gap={1} hAlign="stretch">
                         <Text type="code" color="secondary">{key}</Text>
-                        <Text type="supporting" weight="semibold">{String(value)}</Text>
-                      </HStack>
+                        <Text type="supporting" weight="semibold" style={{ wordBreak: "break-word" }}>
+                          {String(value)}
+                        </Text>
+                      </VStack>
                     ))}
                 </VStack>
               </Card>
@@ -126,6 +131,9 @@ export function ProductDetailsModal() {
           </VStack>
         ) : null}
       </VStack>
+    </LayoutContent>
+  }
+      />
     </Dialog>
   );
 }

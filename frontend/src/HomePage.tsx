@@ -35,13 +35,15 @@ export function HomePage() {
   const isProcessing = status === "running" || status === "queued";
 
   return (
-    <VStack gap={6} hAlign="stretch" width="100%" maxWidth="1000px">
-      {isIdle && <CsvUploader />}
-      {isProcessing && <JobProgress />}
-      {!isIdle && !isProcessing && <JobSummary />}
+    <VStack hAlign="center" width="100%">
+      <VStack gap={6} hAlign="stretch" width="100%" maxWidth="1000px">
+        {isIdle && <CsvUploader />}
+        {isProcessing && <JobProgress />}
+        {!isIdle && !isProcessing && <JobSummary />}
 
-      <ProductTable />
-      <ProductDetailsModal />
+        <ProductTable />
+        <ProductDetailsModal />
+      </VStack>
     </VStack>
   );
 }

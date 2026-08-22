@@ -8,8 +8,9 @@ import {
   Heading,
   Button,
   Badge,
+  StatusDot,
 } from "@astryxdesign/core";
-import { Loader2, CheckCircle2, AlertTriangle, XCircle, Square, RotateCcw } from "lucide-react";
+import { Loader2, Square, RotateCcw } from "lucide-react";
 import { useJobStore } from "../stores/job.store";
 import { cancelJob } from "../api/jobs";
 
@@ -100,27 +101,30 @@ export function JobProgress() {
           </Card>
         )}
 
-        <HStack gap={3} align="stretch">
-          <Card variant="green" padding={3}>
-            <HStack gap={2} align="center">
-              <CheckCircle2 />
-              <Text weight="semibold">{successful}</Text>
-              <Text type="supporting">successful</Text>
-            </HStack>
+        <HStack gap={3} align="stretch" width="100%">
+          <Card padding={3} width="100%">
+            <VStack gap={1} hAlign="start">
+              <HStack gap={2} align="center">
+                <StatusDot variant="success" label="Successful" />
+                <Text weight="semibold">{successful}</Text>
+              </HStack>
+            </VStack>
           </Card>
-          <Card variant="orange" padding={3}>
-            <HStack gap={2} align="center">
-              <AlertTriangle />
-              <Text weight="semibold">{warnings}</Text>
-              <Text type="supporting">warnings</Text>
-            </HStack>
+          <Card padding={3} width="100%">
+            <VStack gap={1} hAlign="start">
+              <HStack gap={2} align="center">
+                <StatusDot variant="warning" label="Warnings" />
+                <Text weight="semibold">{warnings}</Text>
+              </HStack>
+            </VStack>
           </Card>
-          <Card variant="red" padding={3}>
-            <HStack gap={2} align="center">
-              <XCircle />
-              <Text weight="semibold">{failed}</Text>
-              <Text type="supporting">failed</Text>
-            </HStack>
+          <Card padding={3} width="100%">
+            <VStack gap={1} hAlign="start">
+              <HStack gap={2} align="center">
+                <StatusDot variant="error" label="Failed" />
+                <Text weight="semibold">{failed}</Text>
+              </HStack>
+            </VStack>
           </Card>
         </HStack>
       </VStack>
