@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir uv
 # Copy project definition and lock file
 COPY pyproject.toml uv.lock ./
 
-# Install python dependencies
-RUN /bin/bash -c "uv sync --frozen || uv pip install --system -r <(uv export) || pip install --no-cache-dir fastapi uvicorn celery redis pandas langchain langchain-mistralai langgraph python-dotenv python-multipart"
+# Install python dependencies using uv directly from pyproject.toml
+RUN uv pip install --system .
 
 # Copy backend source code
 COPY . .

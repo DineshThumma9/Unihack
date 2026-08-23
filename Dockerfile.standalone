@@ -33,7 +33,7 @@ RUN pip install --no-cache-dir uv
 COPY backend/pyproject.toml backend/uv.lock ./backend/
 
 # Install python dependencies
-RUN cd backend && /bin/bash -c "uv sync --frozen || uv pip install --system -r <(uv export) || pip install --no-cache-dir fastapi uvicorn celery redis pandas langchain langchain-mistralai langgraph python-dotenv python-multipart"
+RUN cd backend && uv pip install --system .
 
 # Copy backend source code
 COPY backend/ ./backend/
