@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 import redis.asyncio as aioredis
+from config import settings
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
+REDIS_URL = settings.REDIS_URL
 
 
 class JobEventPublisher:

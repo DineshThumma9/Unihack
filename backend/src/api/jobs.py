@@ -9,6 +9,7 @@ import pandas as pd
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Request, UploadFile, Query
 from fastapi.responses import FileResponse, StreamingResponse
 import redis.asyncio as aioredis
+from config import settings
 
 from jobs.manager import JobManager
 from jobs.events import JobEventPublisher
@@ -19,9 +20,9 @@ from pipeline.runner import run_job
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
-UPLOADS_DIR = os.getenv("UPLOADS_DIR", "uploads")
-OUTPUTS_DIR = os.getenv("OUTPUTS_DIR", "outputs")
+REDIS_URL = settings.REDIS_URL
+UPLOADS_DIR = settings.UPLOADS_DIR
+OUTPUTS_DIR = settings.OUTPUTS_DIR
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import os
 from celery import Celery
+from config import settings
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6380/0")
-REDIS_RESULT_URL = os.getenv("REDIS_RESULT_URL", os.getenv("REDIS_URL", "redis://localhost:6380/1"))
+REDIS_URL = settings.REDIS_URL
+REDIS_RESULT_URL = settings.REDIS_URL
 
 celery_app = Celery(
     "product_enrichment_tasks",

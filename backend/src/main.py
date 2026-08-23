@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import httpx
 import pandas as pd
 from constants import _AD_TRACKER_HOSTS, _MARKETPLACE_DOMAINS, _SYSTEM_PROMPT
-from dotenv import load_dotenv
+from config import settings
 from extractor import extract_attributes, extract_commerce
 from langchain_mistralai import ChatMistralAI
 from langgraph.graph import END, START, StateGraph
@@ -30,7 +30,6 @@ from models import (
 )
 from preprocess import preprocess
 
-load_dotenv()
 
 
 class State(TypedDict, total=False):
@@ -98,7 +97,8 @@ def elapsed(start: float) -> str:
 
 def make_llm() -> ChatMistralAI:
     return ChatMistralAI(
-        model="ministral-14b-2512",
+        model=settings.LLM_MODEL,
+        api_key=settings.MISTRAL_API_KEY,
         temperature=0,
     )
 
@@ -243,7 +243,7 @@ def _is_valid_source_url(url: str) -> bool:
 
 async def _throttled_search(query: str) -> list[dict]:
     """Run one Serper query under the global concurrency limit."""
-    api_key = os.getenv("SERPER_API_KEY")
+    api_key = settings.SERPER_API_KEY
 
     if not api_key:
         log("[SEARCH] ⚠️ SERPER_API_KEY missing", 2)
