@@ -59,9 +59,23 @@ export function ProductTable() {
       header: "Attributes",
       renderCell: (item) => (
         <Text type="body">
-          {item.attributes_found !== undefined ? `${item.attributes_found} found` : "-"}
+          {item.attributes_found !== undefined && item.attributes_found > 0
+            ? `${item.attributes_found} found`
+            : item.attributes_found === 0
+              ? <Text type="supporting" color="secondary">0 found</Text>
+              : "-"}
         </Text>
       ),
+    },
+    {
+      key: "confidence",
+      header: "Confidence",
+      renderCell: (item) => {
+        if (item.status === "processing" || item.status === "queued") return null;
+        if (item.status === "failed") return <Badge variant="error" label="Failed" />;
+        if (item.validation_passed) return <Badge variant="success" label="Verified" />;
+        return <Badge variant="info" label="Inferred" />;
+      },
     },
     {
       key: "processing_time",

@@ -43,8 +43,10 @@ async def process_product(
                 manufacturer = product_obj.identity.manufacturer_name
                 brand = product_obj.identity.brand_name
             if hasattr(product_obj, "attributes") and product_obj.attributes:
-                if hasattr(product_obj.attributes, "custom_attributes"):
-                    attributes_found = len(product_obj.attributes.custom_attributes)
+                attrs = getattr(product_obj.attributes, "attributes", [])
+                attributes_found = sum(
+                    1 for a in attrs if getattr(a, "label", None) and getattr(a, "value", None)
+                )
 
         status: Literal["success", "warning", "failed"] = (
             "warning" if failed_rules else "success"

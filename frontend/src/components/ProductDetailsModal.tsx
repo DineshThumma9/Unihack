@@ -256,7 +256,15 @@ export function ProductDetailsModal() {
                     {attributes.length > 0 && (
                       <Card variant="muted" padding={4} width="100%">
                         <VStack gap={3} hAlign="stretch">
-                          <Heading level={4}>Extracted Attributes</Heading>
+                          <HStack justify="between" align="center">
+                            <Heading level={4}>Extracted Attributes ({attributes.length})</Heading>
+                            <HStack gap={2} align="center">
+                              <Badge variant="success" label="Verified" />
+                              <Text type="supporting">= from regex</Text>
+                              <Badge variant="info" label="Inferred" />
+                              <Text type="supporting">= from LLM/web</Text>
+                            </HStack>
+                          </HStack>
                           <Card width="100%">
                             <Table data={attributes} columns={attrColumns} idKey="id" density="compact" />
                           </Card>
