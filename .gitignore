@@ -32,10 +32,11 @@ wheels/
 
 # Virtual environments
 .venv
+.env
 *.env 
 *.csv
 backend/uploads/
 backend/sample_splits/
-backend/outputs
+backend/outputs/
 
 
