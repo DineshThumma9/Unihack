@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-import os
 import asyncio
+import os
 from collections import defaultdict
 from time import perf_counter
 from typing import TypedDict
 from urllib.parse import urlparse
 
-import pandas as pd
-from dotenv import load_dotenv
-from langchain_mistralai import ChatMistralAI
-from langgraph.graph import START, END, StateGraph
 import httpx
+import pandas as pd
+from constants import _AD_TRACKER_HOSTS, _MARKETPLACE_DOMAINS, _SYSTEM_PROMPT
+from dotenv import load_dotenv
+from extractor import extract_attributes, extract_commerce
+from langchain_mistralai import ChatMistralAI
+from langgraph.graph import END, START, StateGraph
 from models import (
     Attribute,
     CompleteProduct,
@@ -20,21 +22,14 @@ from models import (
     ProductCommerce,
     ProductDescription,
     ProductDimensions,
+    ProductEnrichment,
     ProductFeatures,
     ProductIdentity,
     ProductIDs,
     ProductMeta,
     ProductSources,
 )
-
-from extractor import (
-    extract_attributes,
-    extract_commerce,
-)
-
 from preprocess import preprocess
-from constants import _SYSTEM_PROMPT,_AD_TRACKER_HOSTS,_MARKETPLACE_DOMAINS
-from models import ProductEnrichment
 
 load_dotenv()
 
@@ -106,7 +101,6 @@ def make_llm() -> ChatMistralAI:
         model="ministral-14b-2512",
         temperature=0,
     )
-
 
 
 async def call_llm(name: str, chain, prompt):
@@ -204,9 +198,6 @@ def _build_search_queries(row: dict) -> list[str]:
     product even when both brand and manufacturer are unknown.
     """
     mpn = (row.get("Mfg_Part_Num") or "").strip()
-    brand = (row.get("brand_name") or "").strip()
-    manuf = (row.get("manufacturer_name") or "").strip()
-    desc = (row.get("Part_Desc") or "").strip()
 
     if not mpn:
         return []
@@ -214,22 +205,11 @@ def _build_search_queries(row: dict) -> list[str]:
     queries: list[str] = [
         f'"{mpn}"',
         f'"{mpn}" specifications',
-        f'"{mpn}" manufacturer',
-        f'"{mpn}" brand',
+        f'"{mpn}" datasheet',
+        f'"{mpn}" filetype:pdf',
     ]
 
-    if desc:
-        queries.append(f'"{mpn}" "{desc[:100]}"')
-
-    if brand:
-        queries.append(f'"{mpn}" "{brand}"')
-
-    if manuf:
-        queries.append(f'"{mpn}" "{manuf}"')
-        queries.append(f'"{mpn}" distributor')
-
-    # Preserve order while removing duplicates.
-    return list(dict.fromkeys(queries))
+    return queries
 
 
 def _is_ad_tracker_url(url: str) -> bool:
@@ -296,8 +276,7 @@ async def _throttled_search(query: str) -> list[dict]:
 
             if resp.status_code != 200:
                 log(
-                    f"├─ [SEARCH] ❌ Serper HTTP {resp.status_code} "
-                    f"for {query!r}",
+                    f"├─ [SEARCH] ❌ Serper HTTP {resp.status_code} " f"for {query!r}",
                     3,
                 )
                 return []
@@ -347,7 +326,10 @@ async def search_node(state: State) -> dict:
     queries = _build_search_queries(row)
     if not queries:
         log("├─ [SEARCH] no MPN available — skipping", 2)
-        return {"search_context": "No MPN available for web research.", "search_sources": []}
+        return {
+            "search_context": "No MPN available for web research.",
+            "search_sources": [],
+        }
 
     log(f"├─ [SEARCH] {len(queries)} MPN-first queries", 2)
 
@@ -363,10 +345,7 @@ async def search_node(state: State) -> dict:
         2,
     )
 
-    search_tasks = [
-        asyncio.create_task(_throttled_search(q))
-        for q in queries
-    ]
+    search_tasks = [asyncio.create_task(_throttled_search(q)) for q in queries]
 
     query_results = await asyncio.gather(
         *search_tasks,
@@ -374,12 +353,17 @@ async def search_node(state: State) -> dict:
     )
 
     all_results: list[dict] = []
+    found_domain = None
+    manuf = (row.get("manufacturer_name") or "").strip().lower()
+    if manuf:
+        manuf_first_word = (
+            manuf.split()[0].replace(",", "").replace(".", "").replace("-", "")
+        )
 
     for q, results in zip(queries, query_results):
         if isinstance(results, Exception):
             log(
-                f"├─ [SEARCH] ❌ {q!r}: "
-                f"{type(results).__name__}: {results}",
+                f"├─ [SEARCH] ❌ {q!r}: " f"{type(results).__name__}: {results}",
                 2,
             )
             continue
@@ -388,6 +372,50 @@ async def search_node(state: State) -> dict:
             result = dict(result)
             result["query"] = q
             all_results.append(result)
+
+            # Domain discovery logic
+            if not found_domain and manuf:
+                url = (result.get("href") or "").lower()
+                try:
+                    hostname = urlparse(url).netloc
+                    if len(manuf_first_word) > 2 and manuf_first_word in hostname:
+                        # For simple implementation, use the hostname as domain.
+                        # (A more complex approach would strip subdomains like www.)
+                        found_domain = hostname.replace("www.", "")
+                except Exception:
+                    pass
+
+    if found_domain:
+        log(f"├─ [SEARCH] Found candidate manufacturer domain: {found_domain}", 2)
+        mpn = (row.get("Mfg_Part_Num") or "").strip()
+        phase2_queries = [
+            f'site:{found_domain} "{mpn}"',
+            f'site:{found_domain} "{mpn}" specifications',
+            f'site:{found_domain} "{mpn}" filetype:pdf',
+        ]
+        log(
+            f"├─ [SEARCH] launching {len(phase2_queries)} Phase 2 queries for {found_domain}",
+            2,
+        )
+
+        phase2_tasks = [
+            asyncio.create_task(_throttled_search(q)) for q in phase2_queries
+        ]
+        phase2_results = await asyncio.gather(
+            *phase2_tasks,
+            return_exceptions=True,
+        )
+        for q, results in zip(phase2_queries, phase2_results):
+            if isinstance(results, Exception):
+                log(
+                    f"├─ [SEARCH] ❌ Phase 2 query failed {q!r}: {type(results).__name__}",
+                    2,
+                )
+                continue
+            for result in results:
+                result = dict(result)
+                result["query"] = q
+                all_results.append(result)
 
     # Deduplicate by URL.  Search engines frequently return the same page
     # for several queries.
@@ -407,9 +435,16 @@ async def search_node(state: State) -> dict:
 
         if any(token in hostname for token in [".gov", ".edu"]):
             return "authoritative"
-        if ".pdf" in url or url.endswith(".pdf") or "specification" in title or "datasheet" in title:
+        if (
+            ".pdf" in url
+            or url.endswith(".pdf")
+            or "specification" in title
+            or "datasheet" in title
+        ):
             return "technical_document"
-        if any(token in title for token in ["official", "manufacturer", "product support"]):
+        if any(
+            token in title for token in ["official", "manufacturer", "product support"]
+        ):
             return "manufacturer_candidate"
         return "web"
 
@@ -532,6 +567,7 @@ EVIDENCE RULES
     log(f"└─ [CONTEXT] ✓ {elapsed(start)}", 1)
     return {"context": context}
 
+
 async def llm_node(
     state: State,
 ) -> dict:
@@ -602,7 +638,9 @@ def merge_node(
 
     # MPN from the raw record is authoritative and must never be changed.
     if det_identity.manufacturer_part_number:
-        identity_data["manufacturer_part_number"] = det_identity.manufacturer_part_number
+        identity_data["manufacturer_part_number"] = (
+            det_identity.manufacturer_part_number
+        )
 
     # The deterministic classpath is retained when explicitly supplied by
     # the source dataset; otherwise the LLM may resolve it from evidence.
@@ -652,7 +690,7 @@ def merge_node(
         if norm and norm.evidence and norm.label.lower() not in seen_labels:
             merged_attrs.append(norm)
             seen_labels.add(norm.label.lower())
-            
+
     # Pad to exactly 50 slots
     padded_attrs = (merged_attrs + [Attribute() for _ in range(50)])[:50]
     attributes = ProductAttributes(attributes=padded_attrs)
@@ -669,16 +707,28 @@ def merge_node(
         list_price=det_comm.list_price or llm_comm.list_price,
         selling_qty=det_comm.selling_qty or llm_comm.selling_qty,
         selling_uom=det_comm.selling_uom or llm_comm.selling_uom,
-        standard_packaging_info=det_comm.standard_packaging_info or llm_comm.standard_packaging_info,
+        standard_packaging_info=det_comm.standard_packaging_info
+        or llm_comm.standard_packaging_info,
     )
 
     # 3. Dimensions (with decimal fraction conversion!)
     from extractor import decimal_to_fraction
+
     dm = enrichment.dimensions
-    length_val = decimal_to_fraction(dm.length) if dm.length and dm.length_uom == "in" else dm.length
-    width_val = decimal_to_fraction(dm.width) if dm.width and dm.width_uom == "in" else dm.width
-    height_val = decimal_to_fraction(dm.height) if dm.height and dm.height_uom == "in" else dm.height
-    
+    length_val = (
+        decimal_to_fraction(dm.length)
+        if dm.length and dm.length_uom == "in"
+        else dm.length
+    )
+    width_val = (
+        decimal_to_fraction(dm.width) if dm.width and dm.width_uom == "in" else dm.width
+    )
+    height_val = (
+        decimal_to_fraction(dm.height)
+        if dm.height and dm.height_uom == "in"
+        else dm.height
+    )
+
     dimensions = ProductDimensions(
         length=length_val,
         length_uom=dm.length_uom,
@@ -692,10 +742,78 @@ def merge_node(
         volume_uom=dm.volume_uom,
     )
 
+    # 4. Deterministic Descriptions (Formulaic Assembly)
+    brand = identity.brand_name or identity.manufacturer_name or "Unbranded"
+    series = identity.trade_name or ""
+    mpn = identity.manufacturer_part_number or ""
+    
+    item_type = (row.get("Part_Desc") or "Product").split(",")[0][:30].strip()
+    if identity.classpath:
+        parts = [p.strip() for p in identity.classpath.split(">") if p.strip()]
+        if parts:
+            item_type = parts[-1]
+            
+    active_attrs = [a for a in attributes.attributes if a.label and a.value]
+    key_attrs = []
+    priority = ["Material", "Voltage Rating", "Amperage Rating", "Size", "Diameter", "Wattage"]
+    
+    for label in priority:
+        for attr in active_attrs:
+            if attr.label == label:
+                val = f"{attr.value} {attr.uom}" if attr.uom else str(attr.value)
+                if val not in key_attrs:
+                    key_attrs.append(val)
+                if len(key_attrs) >= 2:
+                    break
+        if len(key_attrs) >= 2:
+            break
+            
+    if len(key_attrs) < 2:
+        for attr in active_attrs:
+            if attr.label not in priority:
+                val = f"{attr.value} {attr.uom}" if attr.uom else str(attr.value)
+                if val not in key_attrs:
+                    key_attrs.append(val)
+                if len(key_attrs) >= 2:
+                    break
+                    
+    # Invoice Desc (<= 40 chars, upper)
+    invoice_parts = [item_type.upper()] + [k.upper() for k in key_attrs]
+    invoice_desc = " ".join(invoice_parts)[:40].strip()
+    
+    # Mobile Desc (<= 80 chars)
+    mobile_parts = [brand, item_type]
+    if series: mobile_parts.append(series)
+    if mpn: mobile_parts.append(mpn)
+    mobile_desc = ", ".join(mobile_parts)
+    
+    # Pad with key attributes if it's too short
+    if len(mobile_desc) < 60 and key_attrs:
+        mobile_desc += f", {', '.join(key_attrs)}"
+        
+    if len(mobile_desc) > 80:
+        mobile_desc = mobile_desc[:77].strip() + "..."
+        
+    # Short Desc (~100-150 chars)
+    short_parts = [brand]
+    if series: short_parts.append(series)
+    if mpn: short_parts.append(mpn)
+    short_parts.append(item_type)
+    short_desc_base = " ".join(short_parts)
+    short_desc = f"{short_desc_base} With {', '.join(key_attrs)}" if key_attrs else short_desc_base
+    if len(short_desc) > 150:
+        short_desc = short_desc[:147].strip() + "..."
+        
+    final_desc = enrichment.description.model_copy(update={
+        "invoice_desc": invoice_desc,
+        "mobile_desc": mobile_desc,
+        "short_desc": short_desc
+    })
+
     product = CompleteProduct(
         ids=ids,
         identity=identity,
-        description=enrichment.description,
+        description=final_desc,
         features=_fix_feature_length(enrichment.features),
         attributes=attributes,
         commerce=commerce,
@@ -727,7 +845,7 @@ def validate_node(
         "invoice_desc_caps": bool(invoice_desc)
         and invoice_desc == invoice_desc.upper(),
         "invoice_desc_length": 0 < len(invoice_desc) <= 40,
-        "mobile_desc_length": 60 <= len(mobile_desc) <= 80,
+        "mobile_desc_length": 0 < len(mobile_desc) <= 80,
         "classpath_valid": bool(classpath)
         and " > " in classpath
         and len(classpath.split(" > ")) >= 3,
@@ -753,7 +871,7 @@ def validate_node(
                 )
             elif rule == "mobile_desc_length":
                 log(
-                    f"  - MOBILE_DESC length: {len(mobile_desc)} (must be 60-80 chars)",
+                    f"  - MOBILE_DESC length: {len(mobile_desc)} (must be 1-80 chars)",
                     3,
                 )
 

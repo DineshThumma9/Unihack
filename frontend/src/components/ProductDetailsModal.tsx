@@ -10,6 +10,9 @@ import {
   Text,
   Badge,
   Skeleton,
+  Table,
+  proportional,
+  pixel,
 } from "@astryxdesign/core";
 import { useJobStore } from "../stores/job.store";
 import { getProduct } from "../api/jobs";
@@ -41,6 +44,45 @@ export function ProductDetailsModal() {
       : productData?.status === "warning"
         ? "warning"
         : "error";
+
+  const attributes: { id: string; name: string; value: string; uom: string }[] = [];
+  const features: { id: string; feature: string }[] = [];
+
+  if (productData?.delivery_row) {
+    for (let i = 1; i <= 50; i++) {
+      const label = productData.delivery_row[`ATTRIBUTE_LABEL ${i}`];
+      const value = productData.delivery_row[`ATTRIBUTE_VALUE ${i}`];
+      const uom = productData.delivery_row[`ATTRIBUTE_UOM ${i}`];
+      if (label || value || uom) {
+        attributes.push({
+          id: `attr-${i}`,
+          name: label || "-",
+          value: String(value || "-"),
+          uom: uom || "-",
+        });
+      }
+    }
+
+    for (let i = 1; i <= 20; i++) {
+      const feat = productData.delivery_row[`ITEM_FEATURES_${i}`];
+      if (feat) {
+        features.push({
+          id: `feat-${i}`,
+          feature: String(feat),
+        });
+      }
+    }
+  }
+
+  const attrColumns: any[] = [
+    { key: "name", header: "Name", width: proportional(2) },
+    { key: "value", header: "Value", width: proportional(3) },
+    { key: "uom", header: "UOM", width: pixel(100) },
+  ];
+
+  const featureColumns: any[] = [
+    { key: "feature", header: "Feature", width: proportional(1) },
+  ];
 
   return (
     <Dialog
@@ -100,6 +142,18 @@ export function ProductDetailsModal() {
                   <Text type="supporting">Score: {productData.validation_score.toFixed(0)}%</Text>
                   <Text type="supporting">Time: {productData.processing_time.toFixed(2)}s</Text>
                 </VStack>
+                
+                {productData.error && (
+                  <Card padding={3} style={{ backgroundColor: "var(--astryx-bg-error-subtle, #fee2e2)" }}>
+                    <VStack gap={1} hAlign="stretch">
+                      <Text type="body" weight="semibold" style={{ color: "var(--astryx-bg-error-strong, red)" }}>Pipeline Error</Text>
+                      <Text type="code" style={{ color: "var(--astryx-bg-error-strong, red)", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
+                        {productData.error}
+                      </Text>
+                    </VStack>
+                  </Card>
+                )}
+
                 <VStack gap={1} hAlign="stretch">
                   {Object.entries(productData.validation).map(([rule, passed]) => (
                     <HStack key={rule} justify="between" align="center">
@@ -111,12 +165,38 @@ export function ProductDetailsModal() {
               </VStack>
             </Card>
 
+            {attributes.length > 0 && (
+              <Card variant="muted" padding={3} width="100%">
+                <VStack gap={3} hAlign="stretch">
+                  <Text type="body" weight="semibold">Attributes</Text>
+                  <Card width="100%">
+                    <Table data={attributes} columns={attrColumns} idKey="id" density="compact" />
+                  </Card>
+                </VStack>
+              </Card>
+            )}
+
+            {features.length > 0 && (
+              <Card variant="muted" padding={3} width="100%">
+                <VStack gap={3} hAlign="stretch">
+                  <Text type="body" weight="semibold">Features</Text>
+                  <Card width="100%">
+                    <Table data={features} columns={featureColumns} idKey="id" density="compact" />
+                  </Card>
+                </VStack>
+              </Card>
+            )}
+
             {productData.delivery_row && (
               <Card variant="muted" padding={3} width="100%">
                 <VStack gap={2} hAlign="stretch">
-                  <Text type="body" weight="semibold">Enriched Delivery Fields</Text>
+                  <Text type="body" weight="semibold">Enriched Delivery Fields (Raw)</Text>
                   {Object.entries(productData.delivery_row)
-                    .filter(([, value]) => value !== null && value !== "" && value !== undefined)
+                    .filter(([key, value]) => {
+                      if (value === null || value === "" || value === undefined) return false;
+                      if (key.startsWith("ATTRIBUTE_") || key.startsWith("ITEM_FEATURES_")) return false;
+                      return true;
+                    })
                     .map(([key, value]) => (
                       <VStack key={key} gap={1} hAlign="stretch">
                         <Text type="code" color="secondary">{key}</Text>

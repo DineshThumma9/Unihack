@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal, Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, List, Literal, Optional
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # ══════════════════════════════════════════════════════════════
 #  PRIMITIVE BUILDING BLOCKS
@@ -299,6 +299,21 @@ class ProductDescription(BaseModel):
             "With CleanBoost™, Leg Mounting, 5-Wash Cycle, Stainless Steel'"
         ),
     )
+
+    @field_validator("invoice_desc", mode="before")
+    @classmethod
+    def truncate_invoice_desc(cls, v: Any) -> Any:
+        if isinstance(v, str) and len(v) > 40:
+            return v[:40].strip()
+        return v
+
+    @field_validator("mobile_desc", mode="before")
+    @classmethod
+    def truncate_mobile_desc(cls, v: Any) -> Any:
+        if isinstance(v, str) and len(v) > 80:
+            return v[:77].strip() + "..."
+        return v
+
     long_desc: Optional[str] = Field(
         default=None,
         description=(
@@ -640,6 +655,23 @@ class ProductEnrichment(BaseModel):
         description="List of structured attributes (label/value/uom) found in manufacturer sources.",
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_nulls_to_dicts(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # If the LLM returns null or omits these objects entirely, coerce them to empty dicts
+            for field in [
+                "dimensions",
+                "assets",
+                "features",
+                "meta",
+                "commerce",
+                "description",
+                "identity",
+            ]:
+                if data.get(field) is None:
+                    data[field] = {}
+        return data
 
 
 class ProductMeta(BaseModel):

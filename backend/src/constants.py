@@ -155,7 +155,6 @@ _AD_TRACKER_HOSTS = {
 }
 
 
-
 _MANUFACTURER_DOMAINS = {
     "3m.com",
     "diablotools.com",

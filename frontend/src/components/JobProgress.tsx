@@ -50,7 +50,7 @@ export function JobProgress() {
       <VStack gap={4} hAlign="stretch">
         <HStack align="center" justify="between">
           <HStack gap={3} align="center">
-            <Loader2 />
+            <Loader2 className="animate-spin" />
             <VStack gap={0.5} hAlign="stretch">
               <HStack gap={2} align="center">
                 <Heading level={3}>Enriching CSV Products</Heading>
@@ -68,6 +68,7 @@ export function JobProgress() {
               variant="destructive"
               size="sm"
               icon={<Square />}
+              style={{ backgroundColor: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
             />
             <Button
               label="New Job"

@@ -124,7 +124,7 @@ async def run_job(
                 if job_manager:
                     j = job_manager.get_job(job_id)
                     if j and j.status == JobStatus.CANCELLED:
-                        return None
+                        raise ValueError("Job cancelled by user")
 
                 mpn = str(row.get("Mfg_Part_Num", f"PRODUCT_{index}"))
                 if event_publisher:

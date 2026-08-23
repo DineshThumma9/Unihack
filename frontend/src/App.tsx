@@ -3,7 +3,7 @@ import { HomePage } from './HomePage';
 
 function App() {
   return (
-    <AppShell contentPadding={6} height="fill">
+    <AppShell contentPadding={6} height="fill" variant="wash">
       <HomePage />
     </AppShell>
   );

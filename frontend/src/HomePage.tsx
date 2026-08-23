@@ -35,7 +35,7 @@ export function HomePage() {
   const isProcessing = status === "running" || status === "queued";
 
   return (
-    <VStack hAlign="center" width="100%">
+    <VStack hAlign="center" vAlign={isIdle ? "center" : "start"} width="100%" height="100%">
       <VStack gap={6} hAlign="stretch" width="100%" maxWidth="1000px">
         {isIdle && <CsvUploader />}
         {isProcessing && <JobProgress />}

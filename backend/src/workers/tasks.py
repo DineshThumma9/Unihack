@@ -43,14 +43,16 @@ def process_job_task(
 
         job = manager.get_job(job_id)
         if job:
-            job.status = JobStatus.COMPLETED if job_result.error is None else JobStatus.FAILED
+            if job.status != JobStatus.CANCELLED:
+                job.status = JobStatus.COMPLETED if job_result.error is None else JobStatus.FAILED
             job.completed_at = datetime.utcnow()
             job.completed = job_result.processed
             job.successful = job_result.successful
             job.warnings = job_result.warnings
             job.failed = job_result.failed
             job.output_path = job_result.output_path
-            job.error = job_result.error
+            if job.status != JobStatus.CANCELLED:
+                job.error = job_result.error
             manager.save_job(job)
 
         return job_result.model_dump()
