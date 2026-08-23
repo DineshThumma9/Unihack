@@ -162,6 +162,7 @@ async def run_job(
                             },
                         )
                     else:
+                        failed_rules = [k for k, v in res.validation.items() if not v] if res.validation else []
                         await event_publisher.publish(
                             job_id,
                             {

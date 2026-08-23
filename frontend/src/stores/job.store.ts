@@ -209,6 +209,8 @@ export const useJobStore = create<JobState>()(
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({
         jobId: state.jobId,
+        filename: state.filename,
+        status: state.status,
         selectedProductIndex: state.selectedProductIndex,
       }),
     }
