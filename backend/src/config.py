@@ -1,9 +1,8 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    MISTRAL_API_KEY: str = ""
-    SERPER_API_KEY: str = ""
-    
+    MISTRAL_API_KEY: str
+    SERPER_API_KEY: str 
     # Model configs
     LLM_MODEL: str = "ministral-14b-2512"
     

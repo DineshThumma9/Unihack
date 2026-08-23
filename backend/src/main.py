@@ -980,7 +980,8 @@ def output_node(
     # Hackathon Polish: Flag dimensions as Regex if they match the deterministic extractions exactly
     dims = ["LENGTH", "HEIGHT", "WIDTH", "WEIGHT"]
     if "deterministic" in state:
-        det_attrs = state["deterministic"].get("attributes", [])
+        det_product_attrs = state["deterministic"].get("attributes")
+        det_attrs = det_product_attrs.attributes if det_product_attrs else []
         for d in dims:
             row_val = str(delivery_row.get(d, "")).strip()
             if not row_val or row_val == "None":

@@ -50,9 +50,9 @@ class Attribute(BaseModel):
             "that explicitly supports this attribute."
         ),
     )
-    source: Literal["Regex", "LLM", "Input"] = Field(
+    source: str = Field(
         default="LLM",
-        description="Origin of this attribute (Regex or LLM)",
+        exclude=True,
     )
 
     model_config = ConfigDict(populate_by_name=True)
@@ -874,4 +874,4 @@ class CompleteProduct(BaseModel):
         row["Country Of Origin"] = m.country_of_origin
         row["Discontinued"] = m.discontinued
         row["Actual Image (Yes/No)"] = m.actual_image
-        return row
+        return row, source_map
