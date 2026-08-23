@@ -52,8 +52,5 @@ RUN chmod +x /app/start.sh
 ENV PYTHONPATH=/app/backend/src
 ENV REDIS_URL=redis://localhost:6379/0
 
-# Expose port for FastAPI
-EXPOSE 8000
-
 # Run the startup script
 CMD ["/app/start.sh"]
