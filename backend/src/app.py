@@ -37,20 +37,3 @@ app.include_router(products_router)
 def health_check():
     return {"status": "ok", "service": "CSV Product Enrichment API"}
 
-
-# Serve static frontend (useful for single-container deployments on Railway/Azure)
-dist_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "frontend", "dist")
-if os.path.isdir(dist_path):
-    from fastapi.staticfiles import StaticFiles
-    from fastapi.responses import FileResponse
-    
-    # Mount assets dir
-    assets_path = os.path.join(dist_path, "assets")
-    if os.path.isdir(assets_path):
-        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
-
-    # Serve index.html for all other routes to support SPA routing
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        if not full_path.startswith("api/"):
-            return FileResponse(os.path.join(dist_path, "index.html"))
