@@ -199,19 +199,33 @@ async def get_job_events(
 
 
 @router.get("/{job_id}/download")
-async def download_job_output(job_id: str):
+async def download_job_output(job_id: str, type: str = None):
     manager = JobManager()
     job = manager.get_job(job_id)
     manager.close()
 
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if not job.output_path or not os.path.exists(job.output_path):
-        raise HTTPException(status_code=404, detail="Output file not ready or not found")
+    if not job.output_path:
+        raise HTTPException(status_code=404, detail="Output file not ready")
 
+    target_path = job.output_path
     download_name = f"enriched_{job.filename}"
+
+    if type == "failed":
+        base_path = job.output_path.rsplit(".", 1)[0]
+        target_path = f"{base_path}_failed.csv"
+        download_name = f"failed_{job.filename}"
+    elif type == "warning":
+        base_path = job.output_path.rsplit(".", 1)[0]
+        target_path = f"{base_path}_warning.csv"
+        download_name = f"warning_{job.filename}"
+
+    if not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="Requested file not found")
+
     return FileResponse(
-        path=job.output_path,
+        path=target_path,
         media_type="text/csv",
         filename=download_name,
     )

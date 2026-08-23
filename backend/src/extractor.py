@@ -106,9 +106,9 @@ def extract_dimensions(desc: str) -> list[Attribute]:
     )
     if m:
         ev = f"Matched '{m.group(0)}' in raw product description"
-        w, l = _parse_num(m.group(1)), _parse_num(m.group(2))
+        w, length = _parse_num(m.group(1)), _parse_num(m.group(2))
         attrs.append(Attribute(label="Width", value=w, uom="in", evidence=ev))
-        attrs.append(Attribute(label="Length", value=l, uom="in", evidence=ev))
+        attrs.append(Attribute(label="Length", value=length, uom="in", evidence=ev))
         return attrs
 
     # Standalone size (e.g. 6-1/2")

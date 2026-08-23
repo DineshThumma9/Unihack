@@ -32,6 +32,7 @@ export interface ProductProgress extends Record<string, unknown> {
   brand?: string | null;
   attributes_found?: number;
   validation_passed?: boolean;
+  failed_rules?: string[];
   processing_time?: number;
   error?: string | null;
 }
@@ -57,6 +58,7 @@ export interface ProductCompletedEvent {
   brand?: string | null;
   attributes_found?: number;
   validation_passed?: boolean;
+  failed_rules?: string[];
   processing_time?: number;
 }
 

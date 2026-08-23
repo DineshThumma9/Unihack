@@ -17,7 +17,6 @@ from langgraph.graph import END, START, StateGraph
 from models import (
     Attribute,
     CompleteProduct,
-    ProductAssets,
     ProductAttributes,
     ProductCommerce,
     ProductDescription,
@@ -783,8 +782,10 @@ def merge_node(
     
     # Mobile Desc (<= 80 chars)
     mobile_parts = [brand, item_type]
-    if series: mobile_parts.append(series)
-    if mpn: mobile_parts.append(mpn)
+    if series:
+        mobile_parts.append(series)
+    if mpn:
+        mobile_parts.append(mpn)
     mobile_desc = ", ".join(mobile_parts)
     
     # Pad with key attributes if it's too short
@@ -796,8 +797,10 @@ def merge_node(
         
     # Short Desc (~100-150 chars)
     short_parts = [brand]
-    if series: short_parts.append(series)
-    if mpn: short_parts.append(mpn)
+    if series:
+        short_parts.append(series)
+    if mpn:
+        short_parts.append(mpn)
     short_parts.append(item_type)
     short_desc_base = " ".join(short_parts)
     short_desc = f"{short_desc_base} With {', '.join(key_attrs)}" if key_attrs else short_desc_base

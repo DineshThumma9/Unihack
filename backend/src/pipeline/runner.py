@@ -91,8 +91,6 @@ async def run_job(
     product_concurrency: int = 2,
     limit: int | None = None,
 ) -> JobResult:
-    total_start = perf_counter()
-
     try:
         df = preprocess(input_path)
         if limit is not None:
@@ -174,7 +172,8 @@ async def run_job(
                                 "manufacturer": res.manufacturer,
                                 "brand": res.brand,
                                 "attributes_found": res.attributes_found,
-                                "validation_passed": len([v for v in res.validation.values() if not v]) == 0,
+                                "validation_passed": len(failed_rules) == 0,
+                                "failed_rules": failed_rules,
                                 "processing_time": round(res.processing_time, 2),
                             },
                         )
@@ -196,6 +195,26 @@ async def run_job(
             # Create empty CSV file if no valid rows
             with open(output_path, "w") as f:
                 f.write("")
+
+        # Save failed and warning CSVs for human review
+        failed_rows = []
+        warning_rows = []
+        for i, res in enumerate(product_results):
+            if res.status == "failed":
+                row_copy = df.iloc[i].copy().to_dict()
+                row_copy["Failure_Reason"] = res.error or "Unknown error"
+                failed_rows.append(row_copy)
+            elif res.status == "warning":
+                row_copy = df.iloc[i].copy().to_dict()
+                failed_rules = [r for r, p in res.validation.items() if not p]
+                row_copy["Warning_Rules"] = ", ".join(failed_rules)
+                warning_rows.append(row_copy)
+                
+        base_path = output_path.rsplit(".", 1)[0]
+        if failed_rows:
+            pd.DataFrame(failed_rows).to_csv(f"{base_path}_failed.csv", index=False)
+        if warning_rows:
+            pd.DataFrame(warning_rows).to_csv(f"{base_path}_warning.csv", index=False)
 
         job_res = JobResult(
             job_id=job_id,

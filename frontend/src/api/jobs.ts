@@ -37,14 +37,18 @@ export function getDownloadUrl(jobId: string): string {
   return `${baseURL}/api/jobs/${jobId}/download`;
 }
 
-export async function downloadCsv(jobId: string, filename: string): Promise<void> {
-  const response = await api.get(`/api/jobs/${jobId}/download`, {
+export async function downloadCsv(jobId: string, filename: string, type?: "failed" | "warning"): Promise<void> {
+  const urlParams = type ? `?type=${type}` : "";
+  const response = await api.get(`/api/jobs/${jobId}/download${urlParams}`, {
     responseType: "blob",
   });
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", `enriched_${filename}`);
+  
+  const prefix = type ? `${type}_` : "enriched_";
+  link.setAttribute("download", `${prefix}${filename}`);
+  
   document.body.appendChild(link);
   link.click();
   link.remove();

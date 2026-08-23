@@ -121,6 +121,7 @@ export const useJobStore = create<JobState>()(
               brand: event.brand,
               attributes_found: event.attributes_found,
               validation_passed: event.validation_passed,
+              failed_rules: event.failed_rules,
               processing_time: event.processing_time,
             };
 

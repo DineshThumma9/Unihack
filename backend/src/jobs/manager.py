@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import os
-from typing import Any
 import redis
 from jobs.models import Job, JobStatus, ProductRunResult
 
