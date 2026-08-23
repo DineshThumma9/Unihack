@@ -275,6 +275,7 @@ def normalize_attribute(attr: Attribute) -> Optional[Attribute]:
         value=value,
         uom=uom,
         evidence=evidence,
+        source=getattr(attr, "source", "Regex")
     )
 
 
@@ -286,6 +287,7 @@ def extract_attributes(desc: str) -> list[Attribute]:
     attrs.extend(extract_grit(desc))
     normalized = []
     for a in attrs:
+        a.source = "Regex"
         norm = normalize_attribute(a)
         if norm:
             normalized.append(norm)

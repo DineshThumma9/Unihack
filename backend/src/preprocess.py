@@ -42,7 +42,7 @@ def _is_missing(value) -> bool:
 
 
 def _clean_string(value) -> str | None:
-    if _is_missing(value):
+    if _is_placeholder(value):
         return None
     val_str = str(value).strip()
     return val_str if val_str else None

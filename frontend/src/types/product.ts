@@ -11,4 +11,5 @@ export interface ProductRunResult {
   needs_review: boolean;
   error: string | null;
   delivery_row: Record<string, any> | null;
+  source_map?: Record<string, "Regex" | "LLM">;
 }

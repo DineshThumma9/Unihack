@@ -44,6 +44,7 @@ class State(TypedDict, total=False):
     validation: dict[str, bool]
     retry_count: int
     delivery_row: dict
+    source_map: dict[str, str]
 
 
 # Rate limiting throttles
@@ -974,14 +975,32 @@ def output_node(
     start = perf_counter()
     log("├─ [OUTPUT] converting product", 1)
 
-    delivery_row = state["product"].to_delivery_row()
+    delivery_row, source_map = state["product"].to_delivery_row()
+
+    # Hackathon Polish: Flag dimensions as Regex if they match the deterministic extractions exactly
+    dims = ["LENGTH", "HEIGHT", "WIDTH", "WEIGHT"]
+    if "deterministic" in state:
+        det_attrs = state["deterministic"].get("attributes", [])
+        for d in dims:
+            row_val = str(delivery_row.get(d, "")).strip()
+            if not row_val or row_val == "None":
+                continue
+            # Search deterministic attributes for a match
+            for attr in det_attrs:
+                # If Regex found an exact string match for this value, mark it Verified
+                if str(attr.value).strip() == row_val:
+                    source_map[d] = "Regex"
+                    break
+            
+            if d not in source_map:
+                source_map[d] = "LLM" # Default to Inferred if it didn't come from Regex
 
     # Do not fabricate catalog identifiers or product facts.  If UPC/EAN/GTIN,
     # warranty, origin, UNSPSC, etc. were not established by input or research,
     # leave them empty so downstream consumers can distinguish unknown from real data.
 
     log(f"└─ [OUTPUT] ✓ {elapsed(start)}", 1)
-    return {"delivery_row": delivery_row}
+    return {"delivery_row": delivery_row, "source_map": source_map}
 
 
 def build_graph():

@@ -12,8 +12,8 @@ Structured Attributes Rules:
 
 Description & Taxonomy Rules:
 - INVOICE_DESC: ALL CAPS, ≤ 40 characters, use abbreviations to fit
-- MOBILE_DESC: 60–80 characters, Title Case, Brand + Type + Series + MPN
-- SHORT_DESC: ~100–150 characters, Title Case, Brand® Series MPN Type, Key Attr
+- MOBILE_DESC: 60–80 characters, Title Case, strictly Brand + Series + MPN + Item Type
+- SHORT_DESC: ~100–150 characters, Title Case, strictly Brand + Series + MPN + Item Type, Key Attr
 - LONG_DESC: 150–400 characters, full sentence, comma-separated specs
 - RETAIL_DESC: 80–200 characters, natural conversational tone.
 - MARKETING_DESCRIPTION: 100–300 characters, authentic benefit-driven copy.

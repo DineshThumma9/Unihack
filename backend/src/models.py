@@ -50,6 +50,10 @@ class Attribute(BaseModel):
             "that explicitly supports this attribute."
         ),
     )
+    source: Literal["Regex", "LLM", "Input"] = Field(
+        default="LLM",
+        description="Origin of this attribute (Regex or LLM)",
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -642,6 +646,36 @@ class ProductAssets(BaseModel):
     )
 
 
+class ProductMeta(BaseModel):
+    """
+    Record-level metadata about this product's status and image availability.
+    """
+
+    country_of_origin: Optional[str] = Field(
+        default=None,
+        description=(
+            "Country where the product is manufactured. Use full country name. "
+            "Examples: 'United States', 'China', 'Japan', 'Germany', 'Mexico'. "
+            "Infer from brand if confidently known (e.g. Makita → Japan, "
+            "Festool → Germany). Leave None if uncertain."
+        ),
+    )
+    discontinued: Optional[bool] = Field(
+        default=None,
+        description=(
+            "True if this product has been discontinued by the manufacturer. "
+            "False if it is currently active. None if status is unknown."
+        ),
+    )
+    actual_image: Optional[Literal["Yes", "No"]] = Field(
+        default=None,
+        description=(
+            "'Yes' if a real product photograph is available in product_image. "
+            "'No' if only a placeholder, line drawing, or no image is available."
+        ),
+    )
+
+
 class ProductEnrichment(BaseModel):
     description: ProductDescription
     identity: ProductIdentity
@@ -672,36 +706,6 @@ class ProductEnrichment(BaseModel):
                 if data.get(field) is None:
                     data[field] = {}
         return data
-
-
-class ProductMeta(BaseModel):
-    """
-    Record-level metadata about this product's status and image availability.
-    """
-
-    country_of_origin: Optional[str] = Field(
-        default=None,
-        description=(
-            "Country where the product is manufactured. Use full country name. "
-            "Examples: 'United States', 'China', 'Japan', 'Germany', 'Mexico'. "
-            "Infer from brand if confidently known (e.g. Makita → Japan, "
-            "Festool → Germany). Leave None if uncertain."
-        ),
-    )
-    discontinued: Optional[bool] = Field(
-        default=None,
-        description=(
-            "True if this product has been discontinued by the manufacturer. "
-            "False if it is currently active. None if status is unknown."
-        ),
-    )
-    actual_image: Optional[Literal["Yes", "No"]] = Field(
-        default=None,
-        description=(
-            "'Yes' if a real product photograph is available in product_image. "
-            "'No' if only a placeholder, line drawing, or no image is available."
-        ),
-    )
 
 
 # ══════════════════════════════════════════════════════════════
@@ -768,8 +772,8 @@ class CompleteProduct(BaseModel):
         description="Record-level metadata: country of origin, discontinued status, image flag.",
     )
 
-    def to_delivery_row(self) -> dict:
-        """Return a flat dict whose keys match the exact 252-column delivery CSV."""
+    def to_delivery_row(self) -> tuple[dict, dict]:
+        """Return a flat dict whose keys match the exact 252-column delivery CSV, and a source map dict."""
         s, i, id_, d, f, at, c, dm, as_, m = (
             self.sources,
             self.ids,
@@ -783,6 +787,7 @@ class CompleteProduct(BaseModel):
             self.meta,
         )
         row: dict = {}
+        source_map: dict[str, str] = {}
         row["MFR URL"] = s.mfr_url
         for n, url in enumerate(s.ref_urls, 1):
             row[f"Ref URL {n}"] = url
@@ -822,6 +827,8 @@ class CompleteProduct(BaseModel):
             row[f"ATTRIBUTE_LABEL {n}"] = attr.label if attr else None
             row[f"ATTRIBUTE_VALUE {n}"] = attr.value if attr else None
             row[f"ATTRIBUTE_UOM {n}"] = attr.uom if attr else None
+            if attr:
+                source_map[f"ATTRIBUTE_VALUE {n}"] = attr.source
         row["UPC"] = c.upc
         row["EAN"] = c.ean
         row["GTIN"] = c.gtin

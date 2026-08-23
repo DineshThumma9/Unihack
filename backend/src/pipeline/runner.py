@@ -63,6 +63,7 @@ async def process_product(
             needs_review=bool(failed_rules),
             error=None,
             delivery_row=result.get("delivery_row"),
+            source_map=result.get("source_map"),
         )
     except Exception as exc:
         product_time = perf_counter() - product_start

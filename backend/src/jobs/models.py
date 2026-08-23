@@ -65,3 +65,4 @@ class ProductRunResult(BaseModel):
     error: str | None = None
 
     delivery_row: dict[str, Any] | None = None
+    source_map: dict[str, str] | None = None

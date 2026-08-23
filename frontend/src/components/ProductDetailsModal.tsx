@@ -27,6 +27,14 @@ function formatKeyName(key: string): string {
     .join(" ");
 }
 
+const SourceBadge = ({ source }: { source?: "Regex" | "LLM" | string }) => {
+  if (!source) return null;
+  if (source === "Regex") {
+    return <Badge variant="success" label="Verified" />;
+  }
+  return <Badge variant="info" label="Inferred" />;
+};
+
 export function ProductDetailsModal() {
   const { jobId, selectedProductIndex, selectProduct } = useJobStore();
   const [productData, setProductData] = useState<ProductRunResult | null>(null);
@@ -54,14 +62,16 @@ export function ProductDetailsModal() {
         ? "warning"
         : "error";
 
-  const attributes: { id: string; name: string; value: string; uom: string }[] = [];
+  const attributes: { id: string; name: string; value: string; uom: string; source?: string }[] = [];
   const features: { id: string; feature: string }[] = [];
 
-  const rawFields: { id: string; key: string; value: string }[] = [];
+  const rawFields: { id: string; key: string; value: string; source?: string }[] = [];
   const descriptions: { key: string; value: string }[] = [];
   const urls: { key: string; value: string }[] = [];
   const commerce: { id: string; key: string; value: string }[] = [];
-  const dimensions: { id: string; key: string; value: string; uom: string }[] = [];
+  const dimensions: { id: string; key: string; value: string; uom: string; source?: string }[] = [];
+
+  const sourceMap = productData?.source_map || {};
 
   if (productData?.delivery_row) {
     for (let i = 1; i <= 50; i++) {
@@ -74,6 +84,7 @@ export function ProductDetailsModal() {
           name: String(label || "-"),
           value: String(value || "-"),
           uom: String(uom || "-"),
+          source: sourceMap[`ATTRIBUTE_VALUE ${i}`],
         });
       }
     }
@@ -111,17 +122,23 @@ export function ProductDetailsModal() {
           id: key, 
           key: formattedKey, 
           value: strValue, 
-          uom: uomVal ? String(uomVal) : "-" 
+          uom: uomVal ? String(uomVal) : "-",
+          source: sourceMap[key]
         });
       } else {
-        rawFields.push({ id: key, key: formattedKey, value: strValue });
+        rawFields.push({ id: key, key: formattedKey, value: strValue, source: sourceMap[key] });
       }
     });
   }
 
   const attrColumns: any[] = [
     { key: "name", header: "Name", width: proportional(2) },
-    { key: "value", header: "Value", width: proportional(3) },
+    { key: "value", header: "Value", width: proportional(3), render: (row: any) => (
+      <HStack align="center" gap={2}>
+        <Text>{row.value}</Text>
+        <SourceBadge source={row.source} />
+      </HStack>
+    )},
     { key: "uom", header: "UOM", width: proportional(1) },
   ];
 
@@ -131,7 +148,12 @@ export function ProductDetailsModal() {
 
   const rawColumns: any[] = [
     { key: "key", header: "Field", width: proportional(2) },
-    { key: "value", header: "Value", width: proportional(3) },
+    { key: "value", header: "Value", width: proportional(3), render: (row: any) => (
+      <HStack align="center" gap={2}>
+        <Text>{row.value}</Text>
+        <SourceBadge source={row.source} />
+      </HStack>
+    ) },
   ];
 
   return (
